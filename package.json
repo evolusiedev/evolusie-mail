@@ -60,6 +60,7 @@
     "jalaali-js": "^2.0.0",
     "jszip": "^3.10.1",
     "lucide-react": "^1.8.0",
+    "mammoth": "^1.12.2",
     "next": "^16.2.6",
     "next-intl": "^4.13.3",
     "otpauth": "^9.5.0",
@@ -73,6 +74,7 @@
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.4.0",
     "webcrypto-liner": "^1.4.3",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zustand": "^5.0.12"
   },
   "devDependencies": {

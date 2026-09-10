@@ -77,6 +77,28 @@ export function sanitizeEmailHtmlForIframe(html: string): string {
   return sanitizeWithDataUriGuard(html, EMAIL_IFRAME_SANITIZE_CONFIG);
 }
 
+/**
+ * Sanitize config for HTML generated client-side from an Office attachment
+ * (docx via mammoth.js, xlsx via SheetJS) in file-preview-modal.tsx. Same
+ * posture as EMAIL_IFRAME_SANITIZE_CONFIG - script tags stripped by config,
+ * the sandboxed `<iframe sandbox="">` (no allow-scripts) is the enforcement
+ * backstop, same reuse as message bodies. mammoth's own docs warn it "performs
+ * no sanitisation of the source document" and can emit `javascript:` link
+ * targets from an untrusted docx, so this is not optional defense-in-depth.
+ */
+export const OFFICE_PREVIEW_SANITIZE_CONFIG = EMAIL_IFRAME_SANITIZE_CONFIG;
+
+/**
+ * Sanitize the HTML mammoth.js (docx) or SheetJS (xlsx) produce for the file
+ * preview modal. Reuses the email iframe's data-URI guard: mammoth's default
+ * image handling embeds pictures as `data:` URIs, so the raster-only allowlist
+ * and `restrictDataUriResourcesOnNode` apply here exactly as they do to an
+ * email body's inline images.
+ */
+export function sanitizeOfficePreviewHtml(html: string): string {
+  return sanitizeWithDataUriGuard(html, OFFICE_PREVIEW_SANITIZE_CONFIG);
+}
+
 /** Outcome of {@link sanitizeEmailBodyForIframe}. */
 export interface IframeBodySanitizeResult {
   /** Sanitized HTML, ready for the iframe srcDoc. */

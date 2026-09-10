@@ -3305,6 +3305,8 @@
     "path": "パス",
     "preview": "プレビュー",
     "preview_error": "プレビューの読み込みに失敗しました",
+    "office_preview_too_large": "Preview not available - this file is too large to preview. Download it to view it.",
+    "office_preview_approximate": "Approximate preview - formatting may differ from the original. Download to see the original.",
     "cut": "切り取り",
     "copy": "コピー",
     "paste": "貼り付け",

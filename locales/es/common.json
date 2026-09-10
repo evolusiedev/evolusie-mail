@@ -3305,6 +3305,8 @@
     "path": "Ruta",
     "preview": "Vista previa",
     "preview_error": "Error al cargar la vista previa",
+    "office_preview_too_large": "Vista previa no disponible - el archivo es demasiado grande para previsualizarlo. Descárgalo para verlo.",
+    "office_preview_approximate": "Vista previa aproximada - el formato puede diferir del original. Descarga el archivo para ver el original.",
     "cut": "Cortar",
     "copy": "Copiar",
     "paste": "Pegar",

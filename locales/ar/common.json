@@ -3349,6 +3349,8 @@
     "path": "المسار",
     "preview": "معاينة",
     "preview_error": "فشل تحميل المعاينة",
+    "office_preview_too_large": "Preview not available - this file is too large to preview. Download it to view it.",
+    "office_preview_approximate": "Approximate preview - formatting may differ from the original. Download to see the original.",
     "cut": "قص",
     "copy": "نسخ",
     "paste": "لصق",
