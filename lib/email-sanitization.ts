@@ -99,6 +99,22 @@ export function sanitizeOfficePreviewHtml(html: string): string {
   return sanitizeWithDataUriGuard(html, OFFICE_PREVIEW_SANITIZE_CONFIG);
 }
 
+/**
+ * Wrap already-sanitized office-preview HTML with an explicit UTF-8 charset
+ * declaration before file-preview-modal.tsx blobs it for the sandboxed
+ * iframe. A Blob's string content is always UTF-8-encoded, but without a
+ * signal to say so the iframe has nothing to decode it as UTF-8 with, and
+ * Chromium's fallback (windows-1252, observed) turns every accented
+ * character and typographic quote into mojibake ("Versión" -> "VersiÃ³n").
+ * Must run on the ALREADY-sanitized string, never before: DOMPurify's
+ * config forbids <meta> (a real injection vector in an email body - see
+ * EMAIL_SANITIZE_CONFIG.FORBID_TAGS), so a <meta> added before sanitizing
+ * would just be stripped back out.
+ */
+export function toOfficePreviewHtmlDocument(sanitizedHtml: string): string {
+  return `<meta charset="utf-8">${sanitizedHtml}`;
+}
+
 /** Outcome of {@link sanitizeEmailBodyForIframe}. */
 export interface IframeBodySanitizeResult {
   /** Sanitized HTML, ready for the iframe srcDoc. */

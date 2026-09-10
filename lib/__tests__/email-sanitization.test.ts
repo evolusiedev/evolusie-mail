@@ -23,6 +23,8 @@ import {
   restrictDataUriResourcesOnNode,
   sanitizeEmailHtmlForIframe,
   sanitizeEmailBodyForIframe,
+  sanitizeOfficePreviewHtml,
+  toOfficePreviewHtmlDocument,
   TRANSPARENT_BLOCKED_PIXEL,
 } from '../email-sanitization';
 
@@ -964,6 +966,49 @@ describe('email-sanitization', () => {
       // A plain sanitize afterwards must not inherit the blocking hook.
       expect(sanitizeEmailHtml('<img src="https://cdn.example/a.png">'))
         .toContain('https://cdn.example/a.png');
+    });
+  });
+
+  describe('sanitizeOfficePreviewHtml', () => {
+    it('strips scripts and event handlers from mammoth/SheetJS output', () => {
+      const malicious = '<p onclick="alert(1)">Cláusula</p><script>alert(1)</script>';
+      const clean = sanitizeOfficePreviewHtml(malicious);
+      expect(clean).not.toContain('<script');
+      expect(clean).not.toContain('onclick');
+      expect(clean).toContain('Cláusula');
+    });
+
+    it('strips javascript: link targets (mammoth performs no sanitisation of its own)', () => {
+      const malicious = '<a href="javascript:alert(1)">click</a>';
+      expect(sanitizeOfficePreviewHtml(malicious)).not.toContain('javascript:');
+    });
+
+    it('preserves accented text and typographic quotes untouched', () => {
+      const html = '<p>Versión, «Cláusulas», “ninguna parte podrá ceder”, Niños, güey, ¿Cómo está usted?</p>';
+      expect(sanitizeOfficePreviewHtml(html)).toBe(html);
+    });
+  });
+
+  describe('toOfficePreviewHtmlDocument', () => {
+    // Regression test for the mojibake bug: file-preview-modal.tsx blobs this
+    // string as `text/html` for a sandboxed iframe. A Blob's bytes are always
+    // UTF-8, but without an explicit charset signal Chromium's fallback decode
+    // (windows-1252, observed) turned every accented character and
+    // typographic quote into mojibake - e.g. "Versión" rendered as "VersiÃ³n".
+    // This only asserts the two safeguards are present (the actual
+    // browser-decode behavior isn't reproducible in jsdom); see the PR
+    // description for the real-Chromium verification.
+    it('prefixes an explicit utf-8 charset declaration', () => {
+      const html = '<p>Versión, «Cláusulas», “ninguna parte podrá ceder”, Niños, güey, ¿Cómo está usted?</p>';
+      const doc = toOfficePreviewHtmlDocument(html);
+      expect(doc.startsWith('<meta charset="utf-8">')).toBe(true);
+      expect(doc).toBe(`<meta charset="utf-8">${html}`);
+    });
+
+    it('must run after sanitization, since sanitizeOfficePreviewHtml strips <meta>', () => {
+      const sanitized = sanitizeOfficePreviewHtml('<meta charset="iso-8859-1"><p>Café</p>');
+      expect(sanitized).not.toContain('<meta');
+      expect(toOfficePreviewHtmlDocument(sanitized)).toBe('<meta charset="utf-8"><p>Café</p>');
     });
   });
 });
