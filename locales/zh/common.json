@@ -3305,6 +3305,8 @@
     "path": "路径",
     "preview": "预览",
     "preview_error": "加载预览失败",
+    "office_preview_too_large": "Preview not available - this file is too large to preview. Download it to view it.",
+    "office_preview_approximate": "Approximate preview - formatting may differ from the original. Download to see the original.",
     "cut": "剪切",
     "copy": "复制",
     "paste": "粘贴",

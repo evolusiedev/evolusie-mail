@@ -3305,6 +3305,8 @@
     "path": "Chemin",
     "preview": "Aperçu",
     "preview_error": "Échec du chargement de l'aperçu",
+    "office_preview_too_large": "Preview not available - this file is too large to preview. Download it to view it.",
+    "office_preview_approximate": "Approximate preview - formatting may differ from the original. Download to see the original.",
     "cut": "Couper",
     "copy": "Copier",
     "paste": "Coller",

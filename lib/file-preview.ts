@@ -1,4 +1,10 @@
-export type FilePreviewKind = 'image' | 'html' | 'eml' | 'text' | 'markdown' | 'pdf' | 'audio' | 'video' | 'unsupported';
+export type FilePreviewKind = 'image' | 'html' | 'eml' | 'text' | 'markdown' | 'pdf' | 'docx' | 'xlsx' | 'audio' | 'video' | 'unsupported';
+
+// Modern Office Open XML MIME types only - legacy binary .doc/.xls are out of
+// scope (mammoth/SheetJS target OOXML; a binary-format fallback would need a
+// different conversion path entirely).
+const DOCX_MIME_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+const XLSX_MIME_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
 const IMAGE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'avif', 'bmp', 'ico']);
 const AUDIO_EXTENSIONS = new Set(['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac', 'opus']);
@@ -46,6 +52,14 @@ export function getFilePreviewKind(name?: string, type?: string): FilePreviewKin
 
   if (mimeType === 'application/pdf' || ext === 'pdf') {
     return 'pdf';
+  }
+
+  if (mimeType === DOCX_MIME_TYPE || ext === 'docx') {
+    return 'docx';
+  }
+
+  if (mimeType === XLSX_MIME_TYPE || ext === 'xlsx') {
+    return 'xlsx';
   }
 
   if (mimeType.startsWith('audio/') || AUDIO_EXTENSIONS.has(ext)) {

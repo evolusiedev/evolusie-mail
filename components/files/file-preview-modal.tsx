@@ -5,8 +5,47 @@ import { useTranslations } from "next-intl";
 import { X, Download, Loader2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getFilePreviewKind, isMimeTypeSafeForInlinePreview } from "@/lib/file-preview";
+import { sanitizeOfficePreviewHtml } from "@/lib/email-sanitization";
 import dynamic from "next/dynamic";
 import { EmlPreview, type ParsedEml } from "@/components/files/eml-preview";
+
+// docx (mammoth.js) and xlsx (SheetJS) are only reached for the two new
+// preview kinds, so both stay dynamic imports - neither reaches the bundle
+// for a preview of any other file type.
+async function convertOfficeDocumentToHtml(kind: "docx" | "xlsx", arrayBuffer: ArrayBuffer): Promise<string> {
+  if (kind === "docx") {
+    const mammoth = (await import("mammoth")).default;
+    // externalFileAccess is already false by default (mammoth refuses to read
+    // files outside the source document unless asked); set explicitly so a
+    // future mammoth default change can't silently open that back up.
+    const result = await mammoth.convertToHtml({ arrayBuffer }, { externalFileAccess: false });
+    return result.value;
+  }
+
+  const XLSX = await import("xlsx");
+  const workbook = XLSX.read(arrayBuffer, { type: "array" });
+  // header/footer: '' suppresses SheetJS's default full-page wrapper
+  // (<html><head>...) so each sheet contributes a bare <table>, matching
+  // mammoth's fragment output above - both go through the same sanitize +
+  // sandboxed-iframe path below. Multiple sheets render stacked, labelled by
+  // name, rather than behind a tab switcher - an approximation, same as the
+  // rest of this preview.
+  return workbook.SheetNames.map((sheetName) => {
+    const sheet = workbook.Sheets[sheetName];
+    const table = XLSX.utils.sheet_to_html(sheet, { header: "", footer: "" });
+    return `<h2>${escapeHtmlForOfficePreview(sheetName)}</h2>${table}`;
+  }).join("");
+}
+
+function escapeHtmlForOfficePreview(text: string): string {
+  return text.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+}
+
+// mammoth/SheetJS run entirely in the browser; a large source document means a
+// large in-memory conversion, and neither library streams. Past this size the
+// preview degrades to "not available" + the always-visible download button
+// rather than risk freezing the tab on a huge attachment.
+const MAX_OFFICE_PREVIEW_BYTES = 15 * 1024 * 1024;
 
 // pdf.js-based inline viewer for mobile (no native inline PDF viewer). Loaded
 // only on the mobile PDF path so pdfjs-dist + its worker never reach the
@@ -148,6 +187,7 @@ export function FilePreviewModal({ name, onClose, onDownload, getFileContent }: 
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [officeTooLarge, setOfficeTooLarge] = useState(false);
   const [resolvedFileType, setResolvedFileType] = useState(() => getFilePreviewKind(name));
   const [pdfInlineSupported, setPdfInlineSupported] = useState(true);
   // Whether the resolved blob MIME is inert enough to open as a top-level
@@ -214,6 +254,7 @@ export function FilePreviewModal({ name, onClose, onDownload, getFileContent }: 
     setCanOpenInNewTab(false);
     setEmlContent(null);
     setPdfBlob(null);
+    setOfficeTooLarge(false);
     setLoading(true);
     setError(false);
     setResolvedFileType(getFilePreviewKind(name));
@@ -236,6 +277,23 @@ export function FilePreviewModal({ name, onClose, onDownload, getFileContent }: 
           const { default: PostalMime } = await import("postal-mime");
           const parsed = await new PostalMime().parse(await blob.arrayBuffer());
           if (!cancelled) setEmlContent(parsed as ParsedEml);
+        } else if (previewType === "docx" || previewType === "xlsx") {
+          if (blob.size > MAX_OFFICE_PREVIEW_BYTES) {
+            if (!cancelled) setOfficeTooLarge(true);
+          } else {
+            const rawHtml = await convertOfficeDocumentToHtml(previewType, await blob.arrayBuffer());
+            const sanitized = sanitizeOfficePreviewHtml(rawHtml);
+            const htmlBlob = new Blob([sanitized], { type: "text/html" });
+            revokeUrl = URL.createObjectURL(htmlBlob);
+            if (!cancelled) {
+              setObjectUrl(revokeUrl);
+              // Never a top-level-navigation candidate: this is HTML we generated
+              // from the document, always shown through the sandboxed iframe below,
+              // never via the header's "open in new tab" (which would navigate the
+              // top frame to a blob: URL outside the sandbox).
+              setCanOpenInNewTab(false);
+            }
+          }
         } else {
           // Stalwart's download endpoint can return generic
           // application/octet-stream for attachments even when the email's
@@ -373,6 +431,28 @@ export function FilePreviewModal({ name, onClose, onDownload, getFileContent }: 
             title={name}
             onClick={(e) => e.stopPropagation()}
           />
+        )}
+
+        {!loading && !error && (fileType === "docx" || fileType === "xlsx") && officeTooLarge && (
+          <div className="bg-background rounded-lg p-8 max-w-md w-full text-center" onClick={(e) => e.stopPropagation()}>
+            <p className="text-sm text-muted-foreground">{t("office_preview_too_large")}</p>
+          </div>
+        )}
+
+        {!loading && !error && (fileType === "docx" || fileType === "xlsx") && !officeTooLarge && objectUrl && (
+          <div className="w-full max-w-5xl h-full flex flex-col gap-2" onClick={(e) => e.stopPropagation()}>
+            <p className="text-xs text-muted-foreground px-1 shrink-0">{t("office_preview_approximate")}</p>
+            {/* Same sandboxed-iframe path as the "html" kind above: the HTML
+                here was generated by mammoth/SheetJS from an untrusted
+                attachment and sanitized, but sandbox="" (no allow-scripts) is
+                the actual enforcement, not the sanitizer. */}
+            <iframe
+              src={objectUrl}
+              sandbox=""
+              className="w-full flex-1 rounded-lg bg-white"
+              title={name}
+            />
+          </div>
         )}
 
         {!loading && !error && fileType === "pdf" && objectUrl && pdfInlineSupported && (

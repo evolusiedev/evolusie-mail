@@ -3349,6 +3349,8 @@
     "path": "Зам",
     "preview": "Урьдчилан харах",
     "preview_error": "Урьдчилан үзэхийг ачаалж чадсангүй",
+    "office_preview_too_large": "Preview not available - this file is too large to preview. Download it to view it.",
+    "office_preview_approximate": "Approximate preview - formatting may differ from the original. Download to see the original.",
     "cut": "Таслах",
     "copy": "Хуулбар",
     "paste": "Наах",

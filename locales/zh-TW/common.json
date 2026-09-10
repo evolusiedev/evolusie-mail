@@ -3349,6 +3349,8 @@
     "path": "路徑",
     "preview": "預覽",
     "preview_error": "載入預覽失敗",
+    "office_preview_too_large": "Preview not available - this file is too large to preview. Download it to view it.",
+    "office_preview_approximate": "Approximate preview - formatting may differ from the original. Download to see the original.",
     "cut": "剪下",
     "copy": "複製",
     "paste": "貼上",
