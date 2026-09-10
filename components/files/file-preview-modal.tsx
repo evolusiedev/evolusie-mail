@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { X, Download, Loader2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getFilePreviewKind, isMimeTypeSafeForInlinePreview } from "@/lib/file-preview";
-import { sanitizeOfficePreviewHtml } from "@/lib/email-sanitization";
+import { sanitizeOfficePreviewHtml, toOfficePreviewHtmlDocument } from "@/lib/email-sanitization";
 import dynamic from "next/dynamic";
 import { EmlPreview, type ParsedEml } from "@/components/files/eml-preview";
 
@@ -283,7 +283,12 @@ export function FilePreviewModal({ name, onClose, onDownload, getFileContent }: 
           } else {
             const rawHtml = await convertOfficeDocumentToHtml(previewType, await blob.arrayBuffer());
             const sanitized = sanitizeOfficePreviewHtml(rawHtml);
-            const htmlBlob = new Blob([sanitized], { type: "text/html" });
+            // Blob content is always UTF-8, but the iframe has no signal that
+            // it is unless we say so explicitly - both the blob's own
+            // Content-Type and an in-document <meta charset> - or Chromium's
+            // legacy-fallback decode (windows-1252, observed) turns every
+            // accented character into mojibake ("Versión" -> "VersiÃ³n").
+            const htmlBlob = new Blob([toOfficePreviewHtmlDocument(sanitized)], { type: "text/html;charset=utf-8" });
             revokeUrl = URL.createObjectURL(htmlBlob);
             if (!cancelled) {
               setObjectUrl(revokeUrl);

@@ -29,4 +29,16 @@ describe('file preview detection', () => {
     expect(getFilePreviewKind('archive.zip', 'application/zip')).toBe('unsupported');
     expect(isFilePreviewable('archive.zip', 'application/zip')).toBe(false);
   });
+
+  it('detects docx and xlsx attachments', () => {
+    expect(getFilePreviewKind('contrato.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')).toBe('docx');
+    expect(getFilePreviewKind('reporte.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')).toBe('xlsx');
+    expect(isFilePreviewable('contrato.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')).toBe(true);
+    expect(isFilePreviewable('reporte.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')).toBe(true);
+  });
+
+  it('rejects legacy binary Office formats (out of scope: mammoth/SheetJS target OOXML)', () => {
+    expect(getFilePreviewKind('old.doc', 'application/msword')).toBe('unsupported');
+    expect(getFilePreviewKind('old.xls', 'application/vnd.ms-excel')).toBe('unsupported');
+  });
 });
